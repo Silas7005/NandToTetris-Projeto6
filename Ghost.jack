@@ -1,124 +1,94 @@
-// This file is part of www.nand2tetris.org
-// and the book "The Elements of Computing Systems"
-// by Nisan and Schocken, MIT Press.
-// File name: projects/09/Square/Square.jack
-
-/** Implements a graphical square. */
 class Ghost {
+    field int col, row;
+    field int direction;
+    field int kind;
 
-   field int x, y; // screen location of the square's top-left corner
-   field int size; // length of this square, in pixels
-   field int memAddress;
+    constructor Ghost new(int startCol, int startRow, int spriteKind) {
+        let col = startCol;
+        let row = startRow;
+        let kind = spriteKind;
+        let direction = 0;
+        do draw();
+        return this;
+    }
 
-   /** Constructs a new square with a given location and size. */
-   constructor Ghost new(int Ax, int Ay) {
-      let x = Ax;
-      let y = Ay;
-      let size = 16;
-      let memAddress = 0;
-      do draw();
-      return this;
-   }
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
 
-   /** Disposes this square. */
-   method void dispose() {
-      do Memory.deAlloc(this);
-      return;
-   }
+    method int getCol() {
+        return col;
+    }
 
-   /** Draws the square on the screen. */
-   method void draw() {
-      do drawHappyGhost(y*32+(x/size));
-      return;
-   }
+    method int getRow() {
+        return row;
+    }
 
-   /** Erases the square from the screen. */
-   method void erase() {
-      do Screen.setColor(false);
-      do Screen.drawRectangle(x, y, x + size, y + size);
-      return;
-   }
+    method void setDirection(int newDirection) {
+        let direction = newDirection;
+        return;
+    }
 
-   method void drawHappyGhost(int location) {
-      let memAddress = 16384+location;
-      do Memory.poke(memAddress+0, 8184);
-      do Memory.poke(memAddress+32, 16380);
-      do Memory.poke(memAddress+64, 25542);
-      do Memory.poke(memAddress+96, -1);
-      do Memory.poke(memAddress+128, -2065);
-      do Memory.poke(memAddress+160, -7225);
-      do Memory.poke(memAddress+192, -7225);
-      do Memory.poke(memAddress+224, -2065);
-      do Memory.poke(memAddress+256, -1);
-      do Memory.poke(memAddress+288, -1);
-      do Memory.poke(memAddress+320, -1);
-      do Memory.poke(memAddress+352, -4081);
-      do Memory.poke(memAddress+384, -2017);
-      do Memory.poke(memAddress+416, -961);
-      do Memory.poke(memAddress+448, -1);
-      do Memory.poke(memAddress+480, -1);
-      return;
-   }
+    method void stop() {
+        let direction = 0;
+        return;
+    }
 
+    method boolean moveOne(Maze maze, int otherCol, int otherRow) {
+        var int nextCol, nextRow;
 
+        let nextCol = col;
+        let nextRow = row;
 
-    /** Increments the square size by 2 pixels. */
-   method void incSize() {
-      if (((y + size) < 254) & ((x + size) < 510)) {
-         do erase();
-         let size = size + 2;
-         do draw();
-      }
-      return;
-   }
+        if (direction = 0) {
+            return false;
+        }
+        if (direction = 1) { let nextRow = row - 1; }
+        if (direction = 2) { let nextRow = row + 1; }
+        if (direction = 3) { let nextCol = col - 1; }
+        if (direction = 4) { let nextCol = col + 1; }
 
-   /** Decrements the square size by 2 pixels. */
-   method void decSize() {
-      if (size > 2) {
-         do erase();
-         let size = size - 2;
-         do draw();
-      }
-      return;
-   }
+        if (maze.isWall(nextCol, nextRow)) {
+            let direction = 0;
+            return false;
+        }
 
-   /** Moves the ghost up by 16 pixels. */
-   method void moveUp() {
-      if (y > 15) {
-         do erase();
-         let y = y - 16;
-         do draw();
-      }
-      return;
-   }
+        if ((nextCol = otherCol) & (nextRow = otherRow)) {
+            return true;
+        }
 
-   /** Moves the square down by 16 pixels. */
-   method void moveDown() {
-      if ((y + size) < 239) {
-         do erase();
-         let y = y + 16;
-         do draw();
-      }
-      return;
-   }
+        do maze.drawCell(col, row);
+        let col = nextCol;
+        let row = nextRow;
+        do draw();
+        return false;
+    }
 
-   /** Moves the ghost left by 16 pixels. */
-   method void moveLeft() {
-      if (x > 15) {
-         do erase();
-         let x = x - 16;
-         do draw();
-      }
-      return;
-   }
+    method void draw() {
+        var int px, py;
+        let px = col * 16;
+        let py = row * 16;
+        do Screen.setColor(true);
 
-   /** Moves the square right by 16 pixels. */
-   method void moveRight() {
-      if ((x + size) < 495) {
-         do erase();
-         let x = x + 16;
-         do draw();
-      }
-      return;
-   }
+        if (kind = 0) {
+            // Desenho do Fantasma
+            do Screen.drawCircle(px + 8, py + 7, 5);
+            do Screen.drawRectangle(px + 3, py + 7, px + 13, py + 14);
+            do Screen.setColor(false);
+            do Screen.drawRectangle(px + 5, py + 5, px + 6, py + 8);
+            do Screen.drawRectangle(px + 10, py + 5, px + 11, py + 8);
+            do Screen.setColor(true);
+        } else {
+            // Desenho da pessoa
+            do Screen.drawCircle(px + 8, py + 4, 3);
+            do Screen.drawRectangle(px + 6, py + 8, px + 10, py + 12);
+            do Screen.drawLine(px + 6, py + 9, px + 3, py + 12);
+            do Screen.drawLine(px + 10, py + 9, px + 13, py + 12);
+            do Screen.drawLine(px + 7, py + 12, px + 5, py + 15);
+            do Screen.drawLine(px + 9, py + 12, px + 11, py + 15);
+        }
+        return;
+    }
 }
+

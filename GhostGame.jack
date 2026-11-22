@@ -1,85 +1,247 @@
-// This file is part of www.nand2tetris.org
-// and the book "The Elements of Computing Systems"
-// by Nisan and Schocken, MIT Press.
-// File name: projects/09/Square/SquareGame.jack
-
-/**
- * Implements the Square Dance game.
- * This simple game allows the user to move a black square around
- * the screen, and change the square's size during the movement.
- * When the game starts, a square of 30 by 30 pixels is shown at the
- * top-left corner of the screen. The user controls the square as follows.
- * The 4 arrow keys are used to move the square up, down, left, and right.
- * The 'z' and 'x' keys are used, respectively, to decrement and increment
- * the square's size. The 'q' key is used to quit the game.
- */
-
 class GhostGame {
-   field int direction; // the square's current direction: 
-                        // 0=none, 1=up, 2=down, 3=left, 4=right
-   field Random random;
-   field Ghost ghost;
+    field Maze maze;
+    field Random random;
+    field Ghost ghost;
+    field Ghost person;
 
-   /** Constructs a new Square Game. */
-   constructor GhostGame new() {
-      // Creates a 30 by 30 pixels square and positions it at the top-left
-      // of the screen.
-      let ghost = Ghost.new(0, 0);
-      let random = Random.new(19);
-      let direction = 0;  // initial state is no movement
-      return this;
-   }
+    field String strFuga;
+    field String strTempo;
+    field String strRestantes;
+    field String strControles;
+    field String strWin1;
+    field String strWin2;
+    field String strRestart;
 
-   /** Disposes this game. */
-   method void dispose() {
-      do ghost.dispose();
-      do Memory.deAlloc(this);
-      return;
-   }
+    field int phase;
+    field int remaining;
+    field int phaseTicks;
+    field int moveGhostTicks;
+    field int movePersonTicks;
+    field int restartTicks;
+    field boolean started;
 
-   /** Moves the square in the current direction. */
-   method void moveGhost() {
-      if (direction = 1) { do ghost.moveUp(); }
-      if (direction = 2) { do ghost.moveDown(); }
-      if (direction = 3) { do ghost.moveLeft(); }
-      if (direction = 4) { do ghost.moveRight(); }
-      do Sys.wait(5);  // delays the next movement
-      return;
-   }
+    constructor GhostGame new() {
+        let maze = Maze.new();
+        let random = Random.new(19);
+        let strFuga = "FUGA: ";
+        let strTempo = "TEMPO: ";
+        let strRestantes = " s restantes";
+        let strControles = "Fantasma: setas/. | Pessoa: WASD/E";
+        let strWin1 = "Fim de Jogo - JOGADOR 1 PERDEU :(";
+        let strWin2 = "Fim de Jogo - JOGADOR 2 PERDEU :(";
+        let strRestart = "Reinicio automatico em 2 s";
+        let started = false;
+        do startRound();
+        return this;
+    }
 
-   /** Runs the game: handles the user's inputs and moves the square accordingly */
-   method void run() {
-      var char key;  // the key currently pressed by the user
-      var boolean exit;
-      let exit = false;
-      
-      while (~exit) {
-         // waits for a key to be pressed
-         while (key = 0) {
+    method void dispose() {
+        do ghost.dispose();
+        do person.dispose();
+        do maze.dispose();
+        do random.dispose();
+        do strFuga.dispose();
+        do strTempo.dispose();
+        do strRestantes.dispose();
+        do strControles.dispose();
+        do strWin1.dispose();
+        do strWin2.dispose();
+        do strRestart.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    method void startRound() {
+        var int ghostCol, ghostRow;
+        var int personCol, personRow;
+
+        if (started) {
+            do ghost.dispose();
+            do person.dispose();
+        }
+
+        do maze.draw();
+
+        let ghostCol = random.randRange(29) + 1;
+        let ghostRow = random.randRange(11) + 3;
+        while (maze.isWall(ghostCol, ghostRow)) {
+            let ghostCol = random.randRange(29) + 1;
+            let ghostRow = random.randRange(11) + 3;
+        }
+
+        let personCol = random.randRange(29) + 1;
+        let personRow = random.randRange(11) + 3;
+        while ((maze.isWall(personCol, personRow)) | ((Math.abs(personCol - ghostCol) + Math.abs(personRow - ghostRow)) < 8)) {
+            let personCol = random.randRange(29) + 1;
+            let personRow = random.randRange(11) + 3;
+        }
+
+        let ghost = Ghost.new(ghostCol, ghostRow, 0);
+        let person = Ghost.new(personCol, personRow, 1);
+
+        let phase = 0;
+        let remaining = 3;
+        let phaseTicks = 0;
+        let moveGhostTicks = 0;
+        let movePersonTicks = 0;
+        let restartTicks = 0;
+        let started = true;
+        do updateStatus();
+        return;
+    }
+
+    method void handleKey(char key) {
+        if (phase = 1) {
+            if (key = 131) { do ghost.setDirection(1); }
+            if (key = 133) { do ghost.setDirection(2); }
+            if (key = 130) { do ghost.setDirection(3); }
+            if (key = 132) { do ghost.setDirection(4); }
+            if ((key = 46) | (key = 59)) { do ghost.stop(); }
+        }
+
+        if ((phase = 0) | (phase = 1)) {
+            if ((key = 87) | (key = 119)) { do person.setDirection(1); }
+            if ((key = 83) | (key = 115)) { do person.setDirection(2); }
+            if ((key = 65) | (key = 97)) { do person.setDirection(3); }
+            if ((key = 68) | (key = 100)) { do person.setDirection(4); }
+            if ((key = 69) | (key = 101)) { do person.stop(); }
+        }
+        return;
+    }
+
+    method void headStartTick() {
+        var boolean collision;
+        let movePersonTicks = movePersonTicks + 1;
+        if (movePersonTicks > 4) {
+            let movePersonTicks = 0;
+            let collision = person.moveOne(maze, ghost.getCol(), ghost.getRow());
+        }
+
+        let phaseTicks = phaseTicks + 1;
+        if (phaseTicks = 25) {
+            let remaining = 2;
+            do updateStatus();
+        }
+        if (phaseTicks = 50) {
+            let remaining = 1;
+            do updateStatus();
+        }
+        if (phaseTicks > 74) {
+            let phase = 1;
+            let remaining = 7;
+            let phaseTicks = 0;
+            let moveGhostTicks = 0;
+            let movePersonTicks = 0;
+            do updateStatus();
+        }
+        return;
+    }
+
+    method void chaseTick() {
+        var boolean collision;
+        let collision = false;
+
+        let moveGhostTicks = moveGhostTicks + 1;
+        if (moveGhostTicks > 4) {
+            let moveGhostTicks = 0;
+            let collision = ghost.moveOne(maze, person.getCol(), person.getRow());
+        }
+        if (collision) {
+            do finish(false);
+            return;
+        }
+
+        let movePersonTicks = movePersonTicks + 1;
+        if (movePersonTicks > 4) {
+            let movePersonTicks = 0;
+            let collision = person.moveOne(maze, ghost.getCol(), ghost.getRow());
+        }
+        if (collision) {
+            do finish(false);
+            return;
+        }
+
+        let phaseTicks = phaseTicks + 1;
+        if (phaseTicks = 25) {
+            let phaseTicks = 0;
+            let remaining = remaining - 1;
+            if (remaining > 0) {
+                do updateStatus();
+            } else {
+                do finish(true);
+            }
+        }
+        return;
+    }
+
+    method void finish(boolean personWon) {
+        let phase = 2;
+        let restartTicks = 0;
+
+        do Screen.setColor(false);
+        do Screen.drawRectangle(88, 104, 424, 152);
+        do Screen.setColor(true);
+        do Screen.drawLine(88, 104, 424, 104);
+        do Screen.drawLine(88, 152, 424, 152);
+        do Screen.drawLine(88, 104, 88, 152);
+        do Screen.drawLine(424, 104, 424, 152);
+
+        do Output.moveCursor(10, 18);
+        if (personWon) {
+            do Output.printString(strWin1);
+        } else {
+            do Output.printString(strWin2);
+        }
+        do Output.moveCursor(12, 19);
+        do Output.printString(strRestart);
+        return;
+    }
+
+    method void updateStatus() {
+        do Screen.setColor(false);
+        do Screen.drawRectangle(0, 0, 511, 31);
+        do Screen.setColor(true);
+
+        do Output.moveCursor(0, 1);
+        if (phase = 0) {
+            do Output.printString(strFuga);
+        } else {
+            do Output.printString(strTempo);
+        }
+        do Output.printInt(remaining);
+        do Output.printString(strRestantes);
+
+        do Output.moveCursor(1, 1);
+        do Output.printString(strControles);
+        return;
+    }
+
+    method void run() {
+        var char key;
+        var boolean exit;
+        let exit = false;
+
+        while (~exit) {
             let key = Keyboard.keyPressed();
-            do moveGhost();
-            do Sys.wait(50);
-            // let direction = random.randRange(4);
-         }
-         if (key = 81)  { let exit = true; }     // q key
-         // if (key = 90)  { do ghost.decSize(); } // z key
-         // if (key = 88)  { do ghost.incSize(); } // x key
-         if (key = 131) { let direction = 1; }   // up arrow
-         if (key = 133) { let direction = 2; }   // down arrow
-         if (key = 130) { let direction = 3; }   // left arrow
-         if (key = 132) { let direction = 4; }   // right arrow
-
-         // waits for the key to be released
-         while (~(key = 0)) {
-            let key = Keyboard.keyPressed();
-            do moveGhost();
-            do Sys.wait(50);
-         }
-         let direction = 0; 
-     } // while
-     return;
-   }
+            if (key = 27) {
+                let exit = true;
+            } else {
+                do handleKey(key);
+                if (phase = 0) {
+                    do headStartTick();
+                }
+                if (phase = 1) {
+                    do chaseTick();
+                }
+                if (phase = 2) {
+                    let restartTicks = restartTicks + 1;
+                    if (restartTicks > 50) {
+                        do startRound();
+                    }
+                }
+            }
+            do Sys.wait(40);
+        }
+        return;
+    }
 }
-
-
-
