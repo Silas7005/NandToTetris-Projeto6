@@ -2,7 +2,7 @@ class GhostGame {
     field Maze maze;
     field Random random;
     field Ghost ghost;
-    field Ghost person;
+    field Person person;
 
     field String strFuga;
     field String strTempo;
@@ -76,8 +76,8 @@ class GhostGame {
             let personRow = random.randRange(11) + 3;
         }
 
-        let ghost = Ghost.new(ghostCol, ghostRow, 0);
-        let person = Ghost.new(personCol, personRow, 1);
+        let ghost = Ghost.new(ghostCol, ghostRow);
+        let person = Person.new(personCol, personRow);
 
         let phase = 0;
         let remaining = 3;

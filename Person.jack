@@ -1,0 +1,79 @@
+class Person {
+    field int col, row;
+    field int direction;
+
+    constructor Person new(int startCol, int startRow) {
+        let col = startCol;
+        let row = startRow;
+        let direction = 0;
+        do draw();
+        return this;
+    }
+
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    method int getCol() {
+        return col;
+    }
+
+    method int getRow() {
+        return row;
+    }
+
+    method void setDirection(int newDirection) {
+        let direction = newDirection;
+        return;
+    }
+
+    method void stop() {
+        let direction = 0;
+        return;
+    }
+
+    method boolean moveOne(Maze maze, int otherCol, int otherRow) {
+        var int nextCol, nextRow;
+
+        let nextCol = col;
+        let nextRow = row;
+
+        if (direction = 0) {
+            return false;
+        }
+        if (direction = 1) { let nextRow = row - 1; }
+        if (direction = 2) { let nextRow = row + 1; }
+        if (direction = 3) { let nextCol = col - 1; }
+        if (direction = 4) { let nextCol = col + 1; }
+
+        if (maze.isWall(nextCol, nextRow)) {
+            let direction = 0;
+            return false;
+        }
+
+        if ((nextCol = otherCol) & (nextRow = otherRow)) {
+            return true;
+        }
+
+        do maze.drawCell(col, row);
+        let col = nextCol;
+        let row = nextRow;
+        do draw();
+        return false;
+    }
+
+    method void draw() {
+        var int px, py;
+        let px = col * 16;
+        let py = row * 16;
+        do Screen.setColor(true);
+        do Screen.drawCircle(px + 8, py + 4, 3);
+        do Screen.drawRectangle(px + 6, py + 8, px + 10, py + 12);
+        do Screen.drawLine(px + 6, py + 9, px + 3, py + 12);
+        do Screen.drawLine(px + 10, py + 9, px + 13, py + 12);
+        do Screen.drawLine(px + 7, py + 12, px + 5, py + 15);
+        do Screen.drawLine(px + 9, py + 12, px + 11, py + 15);
+        return;
+    }
+}

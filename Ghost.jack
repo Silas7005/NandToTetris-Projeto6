@@ -1,12 +1,10 @@
 class Ghost {
     field int col, row;
     field int direction;
-    field int kind;
 
-    constructor Ghost new(int startCol, int startRow, int spriteKind) {
+    constructor Ghost new(int startCol, int startRow) {
         let col = startCol;
         let row = startRow;
-        let kind = spriteKind;
         let direction = 0;
         do draw();
         return this;
@@ -70,24 +68,12 @@ class Ghost {
         let px = col * 16;
         let py = row * 16;
         do Screen.setColor(true);
-
-        if (kind = 0) {
-            // Desenho do Fantasma
-            do Screen.drawCircle(px + 8, py + 7, 5);
-            do Screen.drawRectangle(px + 3, py + 7, px + 13, py + 14);
-            do Screen.setColor(false);
-            do Screen.drawRectangle(px + 5, py + 5, px + 6, py + 8);
-            do Screen.drawRectangle(px + 10, py + 5, px + 11, py + 8);
-            do Screen.setColor(true);
-        } else {
-            // Desenho da pessoa
-            do Screen.drawCircle(px + 8, py + 4, 3);
-            do Screen.drawRectangle(px + 6, py + 8, px + 10, py + 12);
-            do Screen.drawLine(px + 6, py + 9, px + 3, py + 12);
-            do Screen.drawLine(px + 10, py + 9, px + 13, py + 12);
-            do Screen.drawLine(px + 7, py + 12, px + 5, py + 15);
-            do Screen.drawLine(px + 9, py + 12, px + 11, py + 15);
-        }
+        do Screen.drawCircle(px + 8, py + 7, 5);
+        do Screen.drawRectangle(px + 3, py + 7, px + 13, py + 14);
+        do Screen.setColor(false);
+        do Screen.drawRectangle(px + 5, py + 5, px + 6, py + 8);
+        do Screen.drawRectangle(px + 10, py + 5, px + 11, py + 8);
+        do Screen.setColor(true);
         return;
     }
 }
