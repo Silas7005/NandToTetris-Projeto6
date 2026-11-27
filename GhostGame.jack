@@ -128,7 +128,7 @@ class GhostGame {
         }
         if (phaseTicks > 74) {
             let phase = 1;
-            let remaining = 7;
+            let remaining = 20;
             let phaseTicks = 0;
             let moveGhostTicks = 0;
             let movePersonTicks = 0;
